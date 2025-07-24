@@ -35,8 +35,8 @@ export const Signin = () => {
     <main className="card w-96 bg-base-100 shadow-xl mx-auto mt-20" role="main" aria-labelledby="signin-title">
       <div className="card-body">
         <h2 className="card-title" id="signin-title">Masuk</h2>
-        {error && <div className="alert alert-error" role="alert" aria-live="assertive">{error}</div>}
-        <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }} aria-label="Formulir Masuk">
+        {error && <div className="alert alert-error" role="alert" aria-live="assertive" id="error-message">{error}</div>}
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }} aria-label="Formulir Masuk" aria-labelledby="signin-title" aria-describedby={error ? "error-message" : undefined}>
           <div className="form-control">
             <label className="label" htmlFor="email">Email</label>
             <input
@@ -48,6 +48,7 @@ export const Signin = () => {
               className="input input-bordered"
               required
               aria-required="true"
+              aria-describedby={error ? "error-message" : undefined}
             />
           </div>
           <div className="form-control">
@@ -61,6 +62,7 @@ export const Signin = () => {
               className="input input-bordered"
               required
               aria-required="true"
+              aria-describedby={error ? "error-message" : undefined}
             />
           </div>
           <div className="card-actions justify-end mt-4">

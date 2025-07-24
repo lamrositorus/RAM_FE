@@ -6,23 +6,15 @@ import ConfirmModal from '../components/ConfirmModal'
 
 const ITEMS_PER_PAGE = 10
 
-const formatDate = (date) => {
-  const d = new Date(date)
-  return d.toISOString().split('T')[0] // YYYY-MM-DD
-}
-
 export const Keuangan = () => {
-  const today = formatDate(new Date())
-
-  const [tanggal, setTanggal] = useState('')
   const [deskripsi, setDeskripsi] = useState('')
   const [nominal, setNominal] = useState('')
   const [tipe, setTipe] = useState('pemasukan')
   const [list, setList] = useState([])
 
   const [filterTipe, setFilterTipe] = useState('semua')
-  const [startDate, setStartDate] = useState(today)
-  const [endDate, setEndDate] = useState(today)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
 
   const { token } = useAuth()
@@ -32,12 +24,11 @@ export const Keuangan = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!tanggal || !deskripsi || !nominal || !tipe) {
+    if (!deskripsi || !nominal || !tipe) {
       toast.error('Semua field harus diisi')
       return
     }
     setPendingPayload({
-      tanggal,
       deskripsi,
       nominal: Number(nominal),
       tipe,
@@ -50,7 +41,6 @@ export const Keuangan = () => {
     try {
       await postKeuangan(pendingPayload, token)
       toast.success('Data berhasil disimpan')
-      setTanggal('')
       setDeskripsi('')
       setNominal('')
       setTipe('pemasukan')
@@ -65,15 +55,17 @@ export const Keuangan = () => {
     setPendingPayload(null)
   }
 
-  const fetchData = async () => {
-    try {
-      const res = await getKeuangan(token)
-      const sorted = res.data.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))
-      setList(sorted)
-    } catch (err) {
-      toast.error(err.message)
-    }
+const fetchData = async () => {
+  try {
+    const res = await getKeuangan(token)
+    // res.data harus berupa array data transaksi
+    const sorted = res.data.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))
+    setList(sorted)
+  } catch (err) {
+    toast.error(err.message)
   }
+}
+
 
   useEffect(() => {
     fetchData()
@@ -105,14 +97,7 @@ export const Keuangan = () => {
       <h2 className="text-2xl font-bold mb-6 text-center">Input Data Keuangan</h2>
 
       {/* FORM INPUT */}
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <input
-          type="date"
-          className="input input-bordered"
-          value={tanggal}
-          onChange={(e) => setTanggal(e.target.value)}
-          required
-        />
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <input
           type="text"
           placeholder="Deskripsi"
@@ -137,7 +122,7 @@ export const Keuangan = () => {
           <option value="pemasukan">Pemasukan</option>
           <option value="pengeluaran">Pengeluaran</option>
         </select>
-        <div className="md:col-span-4">
+        <div className="md:col-span-3">
           <button type="submit" className="btn btn-primary w-full">
             Simpan
           </button>
@@ -214,6 +199,7 @@ export const Keuangan = () => {
           <button
             className="btn btn-outline w-full"
             onClick={() => {
+              const today = new Date().toISOString().split('T')[0]
               setFilterTipe('semua')
               setStartDate(today)
               setEndDate(today)
@@ -240,7 +226,18 @@ export const Keuangan = () => {
             {paginatedList.length > 0 ? (
               paginatedList.map((item) => (
                 <tr key={item.id}>
-                  <td>{new Date(item.tanggal).toLocaleDateString('id-ID')}</td>
+                  <td>
+                    {new Date(item.tanggal).toLocaleString('id-ID', {
+                      timeZone: 'Asia/Jakarta',
+                      hour12: false,
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      second: '2-digit'
+                    })}
+                  </td>
                   <td>{item.deskripsi}</td>
                   <td>Rp {item.nominal.toLocaleString('id-ID')}</td>
                   <td>{item.tipe}</td>
