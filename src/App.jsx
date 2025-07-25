@@ -45,11 +45,11 @@ function App() {
                 {/* Rute private setelah login */}
                 {token && (
                   <>
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/keuangan" element={<Keuangan />} />
-                    <Route path="/susut" element={<SusutTimbangan />} />
-                    <Route path="/keuntungan" element={<Estimasikeuntungan />} />
-                    <Route path="/modal" element={<Modal />} />
+                    <Route path="/api/dashboard" element={<Dashboard />} />
+                    <Route path="/api/keuangan" element={<Keuangan />} />
+                    <Route path="/api/susut" element={<SusutTimbangan />} />
+                    <Route path="/api/keuntungan" element={<Estimasikeuntungan />} />
+                    <Route path="/api/modal" element={<Modal />} />
                     {/* Tambahkan rute lain sesuai kebutuhan */}
                   </>
                 )}

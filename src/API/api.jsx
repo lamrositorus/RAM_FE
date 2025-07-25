@@ -2,6 +2,7 @@
 import axios from 'axios'
 
 const BASE_URL = 'https://ram-be-express.vercel.app'
+// const BASE_URL = 'http://localhost:3000'
 
 // Helper untuk handle error response
 const handleApiError = (error) => {
@@ -18,9 +19,36 @@ const handleApiError = (error) => {
 }
 
 // Auth APIs
+// Dashboard API
+
+export const getDashboardData = async (token) => {
+  try {
+    const res = await axios.get(`${BASE_URL}/api/dashboard`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    
+    // Pastikan struktur data sesuai
+    if (res.data && res.data.data) {
+      return {
+        success: true,
+        ...res.data
+      };
+    }
+    
+    throw new Error('Invalid response structure');
+  } catch (error) {
+    console.error('API Error:', error);
+    return {
+      success: false,
+      error: error.response?.data?.error || 'Gagal mengambil data dashboard'
+    };
+  }
+};
 export const signup = async ({ username, email, password }) => {
   try {
-    const res = await axios.post(`${BASE_URL}/signup`, {
+    const res = await axios.post(`${BASE_URL}/api/auth/signup`, {
       username,
       email,
       password,
@@ -33,7 +61,7 @@ export const signup = async ({ username, email, password }) => {
 
 export const signin = async ({ email, password }) => {
   try {
-    const res = await axios.post(`${BASE_URL}/signin`, {
+    const res = await axios.post(`${BASE_URL}/api/auth/signin`, {
       email,
       password,
     })
@@ -73,7 +101,7 @@ export const getKeuangan = async (token) => {
 // Susut Timbangan APIs
 export const postSusutTimbangan = async (data, token) => {
   try {
-    const res = await axios.post(`${BASE_URL}/api/susut-timbangan`, data, {
+    const res = await axios.post(`${BASE_URL}/api/susut`, data, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -86,7 +114,7 @@ export const postSusutTimbangan = async (data, token) => {
 
 export const getSusutTimbangan = async (token) => {
   try {
-    const res = await axios.get(`${BASE_URL}/api/susut-timbangan`, {
+    const res = await axios.get(`${BASE_URL}/api/susut`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -97,16 +125,3 @@ export const getSusutTimbangan = async (token) => {
   }
 }
 
-// Dashboard API
-export const getDashboardData = async (token) => {
-  try {
-    const res = await axios.get(`${BASE_URL}/api/dashboard`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    })
-    return res.data
-  } catch (error) {
-    return handleApiError(error)
-  }
-}

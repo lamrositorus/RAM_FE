@@ -23,7 +23,7 @@ export const Signin = () => {
       const token = await signin({ email, password })
       login(token)
       toast.success('Login berhasil')
-      navigate('/dashboard')
+      navigate('/api/dashboard')
     } catch (err) {
       const msg = err.message
       setError(msg)
