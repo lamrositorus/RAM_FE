@@ -4,8 +4,7 @@ import { postKeuangan, getKeuangan } from '../API/api'
 import { useAuth } from '../context/AuthContext'
 import ConfirmModal from '../components/ConfirmModal'
 import { FaSpinner } from 'react-icons/fa'
-
-const ITEMS_PER_PAGE = 10
+import Pagination from '../components/Pagination'
 
 export const Keuangan = () => {
   const [deskripsi, setDeskripsi] = useState('')
@@ -18,6 +17,7 @@ export const Keuangan = () => {
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   const { token } = useAuth()
 
@@ -47,6 +47,7 @@ export const Keuangan = () => {
       setNominal('')
       setTipe('pemasukan')
       fetchData()
+      setCurrentPage(1) // Reset to first page after adding new data
     } catch (err) {
       toast.error(err.message)
     } finally {
@@ -63,6 +64,7 @@ export const Keuangan = () => {
   const fetchData = async () => {
     try {
       const res = await getKeuangan(token)
+      console.log('Fetched data:', res.data)
       const sorted = res.data.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))
       setList(sorted)
     } catch (err) {
@@ -82,6 +84,15 @@ export const Keuangan = () => {
     return isTipeMatch && isStartValid && isEndValid
   })
 
+  // Calculate pagination
+  const totalItems = filteredList.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentItems = filteredList.slice(indexOfFirstItem, indexOfLastItem)
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber)
+
   const summary = filteredList.reduce(
     (acc, cur) => {
       if (cur.tipe === 'pemasukan') acc.pemasukan += cur.nominal
@@ -91,9 +102,6 @@ export const Keuangan = () => {
     { pemasukan: 0, pengeluaran: 0 }
   )
   summary.saldo = summary.pemasukan - summary.pengeluaran
-
-  const totalPages = Math.ceil(filteredList.length / ITEMS_PER_PAGE)
-  const paginatedList = filteredList.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE)
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -231,8 +239,8 @@ export const Keuangan = () => {
             </tr>
           </thead>
           <tbody>
-            {paginatedList.length > 0 ? (
-              paginatedList.map((item) => (
+            {currentItems.length > 0 ? (
+              currentItems.map((item) => (
                 <tr key={item.id}>
                   <td>
                     {new Date(item.tanggal).toLocaleString('id-ID', {
@@ -248,7 +256,11 @@ export const Keuangan = () => {
                   </td>
                   <td>{item.deskripsi}</td>
                   <td>Rp {item.nominal.toLocaleString('id-ID')}</td>
-                  <td>{item.tipe}</td>
+                  <td>
+                    <span className={`badge ${item.tipe === 'pemasukan' ? 'badge-success' : 'badge-error'}`}>
+                      {item.tipe}
+                    </span>
+                  </td>
                 </tr>
               ))
             ) : (
@@ -262,26 +274,14 @@ export const Keuangan = () => {
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2">
-          <button
-            className="btn btn-sm"
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(currentPage - 1)}
-          >
-            Prev
-          </button>
-          <span className="text-sm">
-            Halaman {currentPage} dari {totalPages}
-          </span>
-          <button
-            className="btn btn-sm"
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(currentPage + 1)}
-          >
-            Next
-          </button>
-        </div>
+      {totalPages > 0 && (
+        <Pagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          itemsPerPage={itemsPerPage}
+          onPageChange={paginate}
+        />
       )}
     </div>
   )

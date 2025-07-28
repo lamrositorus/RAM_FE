@@ -1,8 +1,8 @@
 // src/api/auth.js
 import axios from 'axios'
 
-const BASE_URL = 'https://ram-be-express.vercel.app'
-// const BASE_URL = 'http://localhost:3000'
+// const BASE_URL = 'https://ram-be-express.vercel.app'
+const BASE_URL = 'http://localhost:3000'
 
 // Helper untuk handle error response
 const handleApiError = (error) => {
