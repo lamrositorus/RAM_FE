@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext'
 import { postSusutTimbangan, getSusutTimbangan } from '../API/api'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
+import ConfirmModal from '../components/ConfirmModal'
+import { FaSpinner } from 'react-icons/fa'
 
 export const SusutTimbangan = () => {
   const { token } = useAuth()
@@ -32,6 +34,10 @@ export const SusutTimbangan = () => {
 
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const itemsPerPage = 10
 
   const [filter, setFilter] = useState({
     tanggal: '',
@@ -60,41 +66,67 @@ export const SusutTimbangan = () => {
     fetchData()
   }, [])
 
-const handleSubmit = async (e) => {
-  e.preventDefault()
+  const handleSubmit = (e) => {
+    e.preventDefault()
 
-  for (const key in form) {
-    if (form[key] === '') {
-      toast.error(`Field ${key.replace(/_/g, ' ')} wajib diisi`)
-      return
+    for (const key in form) {
+      if (form[key] === '') {
+        toast.error(`Field ${key.replace(/_/g, ' ')} wajib diisi`)
+        return
+      }
+    }
+
+    setIsConfirmOpen(true)
+  }
+
+  const confirmSubmit = async () => {
+    setIsConfirmOpen(false)
+    setIsSubmitting(true)
+    
+    try {
+      const payload = {
+        ...form,
+        sp_pabrik: parseFloat(form.sp_pabrik),
+        buah_pulangan: parseFloat(form.buah_pulangan),
+        sp_ram: parseFloat(form.sp_ram),
+        tanggal: form.tanggal
+      }
+
+      await postSusutTimbangan(payload, token)
+      toast.success('Data susut timbangan berhasil disimpan')
+      setForm({
+        tanggal: '',
+        nomor_polisi: '',
+        nama_supir: '',
+        sp_pabrik: '',
+        buah_pulangan: '',
+        sp_ram: '',
+      })
+      fetchData()
+      setCurrentPage(1) // Reset to first page after adding new data
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
-  try {
-    const payload = {
-      ...form,
-      sp_pabrik: parseFloat(form.sp_pabrik),
-      buah_pulangan: parseFloat(form.buah_pulangan),
-      sp_ram: parseFloat(form.sp_ram),
-      tanggal: form.tanggal  // <-- cukup ini
-    }
+  // Filter data based on filter criteria
+  const filteredData = list.filter(item => {
+    const cocokTanggal = !filter.tanggal || item.tanggal.startsWith(filter.tanggal)
+    const cocokPolisi = item.nomor_polisi.toLowerCase().includes(filter.nomor_polisi.toLowerCase())
+    const cocokSupir = item.nama_supir.toLowerCase().includes(filter.nama_supir.toLowerCase())
+    return cocokTanggal && cocokPolisi && cocokSupir
+  })
 
-    await postSusutTimbangan(payload, token)
-    toast.success('Data susut timbangan berhasil disimpan')
-    setForm({
-      tanggal: '',
-      nomor_polisi: '',
-      nama_supir: '',
-      sp_pabrik: '',
-      buah_pulangan: '',
-      sp_ram: '',
-    })
-    fetchData()
-  } catch (err) {
-    toast.error(err.message)
-  }
-}
+  // Calculate pagination
+  const totalItems = filteredData.length
+  const totalPages = Math.ceil(totalItems / itemsPerPage)
+  const indexOfLastItem = currentPage * itemsPerPage
+  const indexOfFirstItem = indexOfLastItem - itemsPerPage
+  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem)
 
+  const paginate = (pageNumber) => setCurrentPage(pageNumber)
 
   return (
     <div className="max-w-5xl mx-auto p-4">
@@ -157,11 +189,29 @@ const handleSubmit = async (e) => {
           required
         />
         <div className="md:col-span-2">
-          <button type="submit" className="btn btn-primary w-full">
-            Simpan
+          <button 
+            type="submit" 
+            className="btn btn-primary w-full"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <FaSpinner className="animate-spin" />
+                Menyimpan...
+              </span>
+            ) : 'Simpan'}
           </button>
         </div>
       </form>
+
+      <ConfirmModal
+        isOpen={isConfirmOpen}
+        title="Konfirmasi Simpan Data"
+        message="Apakah Anda yakin ingin menyimpan data susut timbangan ini?"
+        onConfirm={confirmSubmit}
+        onCancel={() => setIsConfirmOpen(false)}
+        isLoading={isSubmitting}
+      />
 
       <h2 className="text-xl font-semibold mb-2">Filter Data</h2>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
@@ -170,25 +220,37 @@ const handleSubmit = async (e) => {
           name="tanggal"
           className="input input-bordered"
           value={filter.tanggal}
-          onChange={(e) => setFilter(prev => ({ ...prev, tanggal: e.target.value }))}
+          onChange={(e) => {
+            setFilter(prev => ({ ...prev, tanggal: e.target.value }))
+            setCurrentPage(1) // Reset to first page when filtering
+          }}
         />
         <input
           type="text"
           placeholder="Filter Nomor Polisi"
           className="input input-bordered"
           value={filter.nomor_polisi}
-          onChange={(e) => setFilter(prev => ({ ...prev, nomor_polisi: e.target.value }))}
+          onChange={(e) => {
+            setFilter(prev => ({ ...prev, nomor_polisi: e.target.value }))
+            setCurrentPage(1) // Reset to first page when filtering
+          }}
         />
         <input
           type="text"
           placeholder="Filter Nama Supir"
           className="input input-bordered"
           value={filter.nama_supir}
-          onChange={(e) => setFilter(prev => ({ ...prev, nama_supir: e.target.value }))}
+          onChange={(e) => {
+            setFilter(prev => ({ ...prev, nama_supir: e.target.value }))
+            setCurrentPage(1) // Reset to first page when filtering
+          }}
         />
         <button
           className="btn btn-secondary"
-          onClick={() => setFilter({ tanggal: '', nomor_polisi: '', nama_supir: '' })}
+          onClick={() => {
+            setFilter({ tanggal: '', nomor_polisi: '', nama_supir: '' })
+            setCurrentPage(1) // Reset to first page when resetting filter
+          }}
         >
           Reset Filter
         </button>
@@ -196,34 +258,30 @@ const handleSubmit = async (e) => {
 
       <h2 className="text-xl font-semibold mb-2">Data Susut Timbangan</h2>
       {loading ? (
-        <p>Loading...</p>
+        <div className="flex justify-center">
+          <FaSpinner className="animate-spin text-2xl" />
+        </div>
       ) : list.length === 0 ? (
         <p>Tidak ada data</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="table table-zebra w-full min-w-[800px]">
-            <thead>
-              <tr>
-                <th>Tanggal</th>
-                <th>Nomor Polisi</th>
-                <th>Nama Supir</th>
-                <th>SP Pabrik</th>
-                <th>Buah Pulangan</th>
-                <th>SP RAM</th>
-                <th>Selisih</th>
-                <th>Status</th>
-                <th>Persentase (%)</th>
-              </tr>
-            </thead>
-            <tbody>
-              {list
-                .filter(item => {
-                  const cocokTanggal = !filter.tanggal || item.tanggal.startsWith(filter.tanggal)
-                  const cocokPolisi = item.nomor_polisi.toLowerCase().includes(filter.nomor_polisi.toLowerCase())
-                  const cocokSupir = item.nama_supir.toLowerCase().includes(filter.nama_supir.toLowerCase())
-                  return cocokTanggal && cocokPolisi && cocokSupir
-                })
-                .map(item => (
+        <>
+          <div className="overflow-x-auto mb-4">
+            <table className="table table-zebra w-full min-w-[800px]">
+              <thead>
+                <tr>
+                  <th>Tanggal</th>
+                  <th>Nomor Polisi</th>
+                  <th>Nama Supir</th>
+                  <th>SP Pabrik</th>
+                  <th>Buah Pulangan</th>
+                  <th>SP RAM</th>
+                  <th>Selisih</th>
+                  <th>Status</th>
+                  <th>Persentase (%)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentItems.map(item => (
                   <tr key={item.id}>
                     <td>{formatTanggal(item.tanggal)}</td>
                     <td>{item.nomor_polisi}</td>
@@ -235,10 +293,57 @@ const handleSubmit = async (e) => {
                     <td>{item.status}</td>
                     <td>{formatAngka(item.persentase)}</td>
                   </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="flex justify-between items-center">
+            <div>
+              Menampilkan {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, totalItems)} dari {totalItems} data
+            </div>
+            <div className="join">
+              <button
+                className="join-item btn"
+                onClick={() => paginate(1)}
+                disabled={currentPage === 1}
+              >
+                «
+              </button>
+              <button
+                className="join-item btn"
+                onClick={() => paginate(currentPage - 1)}
+                disabled={currentPage === 1}
+              >
+                ‹
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
+                <button
+                  key={number}
+                  className={`join-item btn ${currentPage === number ? 'btn-active' : ''}`}
+                  onClick={() => paginate(number)}
+                >
+                  {number}
+                </button>
               ))}
-            </tbody>
-          </table>
-        </div>
+              <button
+                className="join-item btn"
+                onClick={() => paginate(currentPage + 1)}
+                disabled={currentPage === totalPages}
+              >
+                ›
+              </button>
+              <button
+                className="join-item btn"
+                onClick={() => paginate(totalPages)}
+                disabled={currentPage === totalPages}
+              >
+                »
+              </button>
+            </div>
+          </div>
+        </>
       )}
     </div>
   )

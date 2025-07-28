@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react'
+import React, { createContext, useContext, useState, useEffect } from 'react'
 
 const AuthContext = createContext({
   token: null,
@@ -8,6 +8,19 @@ const AuthContext = createContext({
 
 export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'))
+
+  // Clear token when window is closed or refreshed
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      localStorage.removeItem('token')
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+    }
+  }, [])
 
   const login = (newToken) => {
     setToken(newToken)

@@ -3,6 +3,7 @@ import { toast } from 'react-toastify'
 import { postKeuangan, getKeuangan } from '../API/api'
 import { useAuth } from '../context/AuthContext'
 import ConfirmModal from '../components/ConfirmModal'
+import { FaSpinner } from 'react-icons/fa'
 
 const ITEMS_PER_PAGE = 10
 
@@ -11,6 +12,7 @@ export const Keuangan = () => {
   const [nominal, setNominal] = useState('')
   const [tipe, setTipe] = useState('pemasukan')
   const [list, setList] = useState([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [filterTipe, setFilterTipe] = useState('semua')
   const [startDate, setStartDate] = useState('')
@@ -37,7 +39,7 @@ export const Keuangan = () => {
   }
 
   const confirmSave = async () => {
-    setIsModalOpen(false)
+    setIsSubmitting(true)
     try {
       await postKeuangan(pendingPayload, token)
       toast.success('Data berhasil disimpan')
@@ -47,6 +49,9 @@ export const Keuangan = () => {
       fetchData()
     } catch (err) {
       toast.error(err.message)
+    } finally {
+      setIsSubmitting(false)
+      setIsModalOpen(false)
     }
   }
 
@@ -55,17 +60,15 @@ export const Keuangan = () => {
     setPendingPayload(null)
   }
 
-const fetchData = async () => {
-  try {
-    const res = await getKeuangan(token)
-    // res.data harus berupa array data transaksi
-    const sorted = res.data.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))
-    setList(sorted)
-  } catch (err) {
-    toast.error(err.message)
+  const fetchData = async () => {
+    try {
+      const res = await getKeuangan(token)
+      const sorted = res.data.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))
+      setList(sorted)
+    } catch (err) {
+      toast.error(err.message)
+    }
   }
-}
-
 
   useEffect(() => {
     fetchData()
@@ -96,7 +99,6 @@ const fetchData = async () => {
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <h2 className="text-2xl font-bold mb-6 text-center">Input Data Keuangan</h2>
 
-      {/* FORM INPUT */}
       <form onSubmit={handleSubmit} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <input
           type="text"
@@ -123,22 +125,30 @@ const fetchData = async () => {
           <option value="pengeluaran">Pengeluaran</option>
         </select>
         <div className="md:col-span-3">
-          <button type="submit" className="btn btn-primary w-full">
-            Simpan
+          <button 
+            type="submit" 
+            className="btn btn-primary w-full"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <span className="flex items-center justify-center gap-2">
+                <FaSpinner className="animate-spin" />
+                Menyimpan...
+              </span>
+            ) : 'Simpan'}
           </button>
         </div>
       </form>
 
-      {/* Confirm Modal */}
       <ConfirmModal
         isOpen={isModalOpen}
         title="Konfirmasi Simpan"
         message="Apakah Anda yakin ingin menyimpan data ini?"
         onConfirm={confirmSave}
         onCancel={cancelSave}
+        isLoading={isSubmitting}
       />
 
-      {/* SUMMARY */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="stat bg-base-200 shadow-md p-4 rounded">
           <div className="stat-title">Total Pemasukan</div>
@@ -154,7 +164,6 @@ const fetchData = async () => {
         </div>
       </div>
 
-      {/* FILTER */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <div>
           <label className="label">Filter Tipe</label>
@@ -211,7 +220,6 @@ const fetchData = async () => {
         </div>
       </div>
 
-      {/* TABLE */}
       <div className="overflow-x-auto mb-4">
         <table className="table table-zebra w-full min-w-[600px]">
           <thead>
@@ -254,7 +262,6 @@ const fetchData = async () => {
         </table>
       </div>
 
-      {/* PAGINATION */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-2">
           <button

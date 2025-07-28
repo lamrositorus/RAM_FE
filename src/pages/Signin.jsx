@@ -3,11 +3,13 @@ import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
 import { signin } from '../API/api'
+import { FaSpinner } from 'react-icons/fa'
 
 export const Signin = () => {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
@@ -19,6 +21,7 @@ export const Signin = () => {
       return
     }
 
+    setIsLoading(true)
     try {
       const token = await signin({ email, password })
       login(token)
@@ -28,6 +31,8 @@ export const Signin = () => {
       const msg = err.message
       setError(msg)
       toast.error(msg)
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -36,7 +41,7 @@ export const Signin = () => {
       <div className="card-body">
         <h2 className="card-title" id="signin-title">Masuk</h2>
         {error && <div className="alert alert-error" role="alert" aria-live="assertive" id="error-message">{error}</div>}
-        <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }} aria-label="Formulir Masuk" aria-labelledby="signin-title" aria-describedby={error ? "error-message" : undefined}>
+        <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }} aria-label="Formulir Masuk">
           <div className="form-control">
             <label className="label" htmlFor="email">Email</label>
             <input
@@ -47,8 +52,7 @@ export const Signin = () => {
               onChange={(e) => setEmail(e.target.value)}
               className="input input-bordered"
               required
-              aria-required="true"
-              aria-describedby={error ? "error-message" : undefined}
+              disabled={isLoading}
             />
           </div>
           <div className="form-control">
@@ -61,13 +65,22 @@ export const Signin = () => {
               onChange={(e) => setPassword(e.target.value)}
               className="input input-bordered"
               required
-              aria-required="true"
-              aria-describedby={error ? "error-message" : undefined}
+              disabled={isLoading}
             />
           </div>
           <div className="card-actions justify-end mt-4">
-            <button className="btn btn-primary" type="submit" aria-label="Tombol Masuk">
-              Masuk
+            <button 
+              className="btn btn-primary w-full" 
+              type="submit" 
+              disabled={isLoading}
+              aria-label={isLoading ? "Sedang memproses" : "Tombol Masuk"}
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <FaSpinner className="animate-spin" />
+                  Memproses...
+                </span>
+              ) : 'Masuk'}
             </button>
           </div>
         </form>
