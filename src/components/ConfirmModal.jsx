@@ -41,7 +41,7 @@ export default function ConfirmModal({
               {isLoading ? (
                 <span className="flex items-center gap-2">
                   <FaSpinner className="animate-spin" />
-                  Memproses...
+                  loading..
                 </span>
               ) : (
                 confirmText
