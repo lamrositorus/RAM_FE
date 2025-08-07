@@ -97,6 +97,18 @@ export const getKeuangan = async (token) => {
     return handleApiError(error)
   }
 }
+export const deleteKeuangan = async (id, token) => {
+  try {
+    const res = await axios.delete(`${BASE_URL}/api/keuangan/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    return res.data
+  } catch (error) {
+    return handleApiError(error)
+  }
+}
 
 // Susut Timbangan APIs
 export const postSusutTimbangan = async (data, token) => {

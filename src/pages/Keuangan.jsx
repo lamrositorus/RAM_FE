@@ -1,28 +1,32 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
-import { postKeuangan, getKeuangan } from '../API/api'
+import { postKeuangan, getKeuangan, deleteKeuangan } from '../API/api'
 import { useAuth } from '../context/AuthContext'
 import ConfirmModal from '../components/ConfirmModal'
-import { FaSpinner } from 'react-icons/fa'
+import { FaSpinner, FaTrash, FaSearch } from 'react-icons/fa'
 import Pagination from '../components/Pagination'
 
 export const Keuangan = () => {
   const [deskripsi, setDeskripsi] = useState('')
   const [nominal, setNominal] = useState('')
-  const [tipe, setTipe] = useState('pemasukan')
+  const [tipe, setTipe] = useState('pengeluaran')
   const [list, setList] = useState([])
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const [filterTipe, setFilterTipe] = useState('semua')
   const [startDate, setStartDate] = useState('')
   const [endDate, setEndDate] = useState('')
+  const [searchQuery, setSearchQuery] = useState('')
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
   const { token } = useAuth()
 
-  const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
   const [pendingPayload, setPendingPayload] = useState(null)
+  const [itemToDelete, setItemToDelete] = useState(null)
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -35,7 +39,7 @@ export const Keuangan = () => {
       nominal: Number(nominal),
       tipe,
     })
-    setIsModalOpen(true)
+    setIsSaveModalOpen(true)
   }
 
   const confirmSave = async () => {
@@ -45,26 +49,54 @@ export const Keuangan = () => {
       toast.success('Data berhasil disimpan')
       setDeskripsi('')
       setNominal('')
-      setTipe('pemasukan')
+      setTipe('pengeluaran')
       fetchData()
-      setCurrentPage(1) // Reset to first page after adding new data
+      setCurrentPage(1)
     } catch (err) {
       toast.error(err.message)
     } finally {
       setIsSubmitting(false)
-      setIsModalOpen(false)
+      setIsSaveModalOpen(false)
     }
   }
 
   const cancelSave = () => {
-    setIsModalOpen(false)
+    setIsSaveModalOpen(false)
     setPendingPayload(null)
+  }
+
+  const handleDelete = (item) => {
+    setItemToDelete(item)
+    setIsDeleteModalOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await deleteKeuangan(itemToDelete.id, token)
+      toast.success('Data berhasil dihapus')
+      fetchData()
+      // Jika halaman terakhir hanya memiliki 1 item, kembali ke halaman sebelumnya
+      if (currentItems.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1)
+      }
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setIsDeleting(false)
+      setIsDeleteModalOpen(false)
+      setItemToDelete(null)
+    }
+  }
+
+  const cancelDelete = () => {
+    setIsDeleteModalOpen(false)
+    setItemToDelete(null)
   }
 
   const fetchData = async () => {
     try {
       const res = await getKeuangan(token)
-      console.log('Fetched data:', res.data)
       const sorted = res.data.sort((a, b) => new Date(b.tanggal) - new Date(a.tanggal))
       setList(sorted)
     } catch (err) {
@@ -81,7 +113,8 @@ export const Keuangan = () => {
     const isTipeMatch = filterTipe === 'semua' || item.tipe === filterTipe
     const isStartValid = startDate ? itemDate >= new Date(startDate) : true
     const isEndValid = endDate ? itemDate <= new Date(endDate) : true
-    return isTipeMatch && isStartValid && isEndValid
+    const isDeskripsiMatch = item.deskripsi.toLowerCase().includes(searchQuery.toLowerCase())
+    return isTipeMatch && isStartValid && isEndValid && isDeskripsiMatch
   })
 
   // Calculate pagination
@@ -149,12 +182,23 @@ export const Keuangan = () => {
       </form>
 
       <ConfirmModal
-        isOpen={isModalOpen}
+        isOpen={isSaveModalOpen}
         title="Konfirmasi Simpan"
         message="Apakah Anda yakin ingin menyimpan data ini?"
         onConfirm={confirmSave}
         onCancel={cancelSave}
         isLoading={isSubmitting}
+      />
+
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        title="Konfirmasi Hapus"
+        message={`Apakah Anda yakin ingin menghapus transaksi "${itemToDelete?.deskripsi}"?`}
+        onConfirm={confirmDelete}
+        onCancel={cancelDelete}
+        isLoading={isDeleting}
+        confirmText="Hapus"
+        cancelText="Batal"
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
@@ -212,14 +256,30 @@ export const Keuangan = () => {
             }}
           />
         </div>
+        <div className="relative">
+          <label className="label">Cari Deskripsi</label>
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Cari deskripsi..."
+              className="input input-bordered w-full pl-10"
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value)
+                setCurrentPage(1)
+              }}
+            />
+            <FaSearch className="absolute left-3 top-3.5 text-gray-400" />
+          </div>
+        </div>
         <div className="flex items-end">
           <button
             className="btn btn-outline w-full"
             onClick={() => {
-              const today = new Date().toISOString().split('T')[0]
               setFilterTipe('semua')
-              setStartDate(today)
-              setEndDate(today)
+              setStartDate('')
+              setEndDate('')
+              setSearchQuery('')
               setCurrentPage(1)
             }}
           >
@@ -236,6 +296,7 @@ export const Keuangan = () => {
               <th>Deskripsi</th>
               <th>Nominal</th>
               <th>Tipe</th>
+              <th>Aksi</th>
             </tr>
           </thead>
           <tbody>
@@ -261,11 +322,22 @@ export const Keuangan = () => {
                       {item.tipe}
                     </span>
                   </td>
+                  <td>
+                    <div className="flex gap-2">
+                      <button 
+                        className="btn btn-error btn-sm"
+                        onClick={() => handleDelete(item)}
+                        aria-label="Hapus"
+                      >
+                        <FaTrash />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))
             ) : (
               <tr>
-                <td colSpan={4} className="text-center py-4">
+                <td colSpan={5} className="text-center py-4">
                   Tidak ada data transaksi
                 </td>
               </tr>
