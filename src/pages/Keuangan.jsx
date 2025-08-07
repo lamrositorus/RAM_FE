@@ -129,8 +129,8 @@ export const Keuangan = () => {
           value={tipe}
           onChange={(e) => setTipe(e.target.value)}
         >
-          <option value="pemasukan">Pemasukan</option>
           <option value="pengeluaran">Pengeluaran</option>
+          <option value="pemasukan">Pemasukan</option>
         </select>
         <div className="md:col-span-3">
           <button 
