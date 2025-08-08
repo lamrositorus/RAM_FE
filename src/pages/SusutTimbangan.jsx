@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'react-toastify'
 import { useAuth } from '../context/AuthContext'
-import { postSusutTimbangan, getSusutTimbangan } from '../API/api'
+import { postSusutTimbangan, getSusutTimbangan, deleteSusutTimbangan } from '../API/api'
 import { format } from 'date-fns'
 import { id } from 'date-fns/locale'
 import ConfirmModal from '../components/ConfirmModal'
-import { FaSpinner } from 'react-icons/fa'
+import { FaSpinner, FaTrash, FaSearch } from 'react-icons/fa'
+import Pagination from '../components/Pagination'
 
 export const SusutTimbangan = () => {
   const { token } = useAuth()
 
+  // Format functions
   const formatTanggal = (tanggalStr) => {
     try {
       const parsedDate = new Date(tanggalStr)
@@ -23,6 +25,7 @@ export const SusutTimbangan = () => {
     return parseFloat(num) % 1 === 0 ? parseInt(num) : parseFloat(num)
   }
 
+  // State management
   const [form, setForm] = useState({
     tanggal: '',
     nomor_polisi: '',
@@ -35,7 +38,10 @@ export const SusutTimbangan = () => {
   const [list, setList] = useState([])
   const [loading, setLoading] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isConfirmOpen, setIsConfirmOpen] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [isSaveModalOpen, setIsSaveModalOpen] = useState(false)
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState(null)
   const [currentPage, setCurrentPage] = useState(1)
   const itemsPerPage = 10
 
@@ -43,8 +49,10 @@ export const SusutTimbangan = () => {
     tanggal: '',
     nomor_polisi: '',
     nama_supir: '',
+    searchQuery: ''
   })
 
+  // Handlers
   const handleChange = (e) => {
     const { name, value } = e.target
     setForm(prev => ({ ...prev, [name]: value }))
@@ -76,11 +84,11 @@ export const SusutTimbangan = () => {
       }
     }
 
-    setIsConfirmOpen(true)
+    setIsSaveModalOpen(true)
   }
 
   const confirmSubmit = async () => {
-    setIsConfirmOpen(false)
+    setIsSaveModalOpen(false)
     setIsSubmitting(true)
     
     try {
@@ -103,7 +111,7 @@ export const SusutTimbangan = () => {
         sp_ram: '',
       })
       fetchData()
-      setCurrentPage(1) // Reset to first page after adding new data
+      setCurrentPage(1)
     } catch (err) {
       toast.error(err.message)
     } finally {
@@ -111,15 +119,41 @@ export const SusutTimbangan = () => {
     }
   }
 
-  // Filter data based on filter criteria
+  const handleDelete = (item) => {
+    setItemToDelete(item)
+    setIsDeleteModalOpen(true)
+  }
+
+  const confirmDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await deleteSusutTimbangan(itemToDelete.id, token)
+      toast.success('Data berhasil dihapus')
+      fetchData()
+      // Jika halaman terakhir hanya memiliki 1 item, kembali ke halaman sebelumnya
+      if (currentItems.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1)
+      }
+    } catch (err) {
+      toast.error(err.message)
+    } finally {
+      setIsDeleting(false)
+      setIsDeleteModalOpen(false)
+      setItemToDelete(null)
+    }
+  }
+
+  // Filter and pagination
   const filteredData = list.filter(item => {
     const cocokTanggal = !filter.tanggal || item.tanggal.startsWith(filter.tanggal)
     const cocokPolisi = item.nomor_polisi.toLowerCase().includes(filter.nomor_polisi.toLowerCase())
     const cocokSupir = item.nama_supir.toLowerCase().includes(filter.nama_supir.toLowerCase())
-    return cocokTanggal && cocokPolisi && cocokSupir
+    const cocokSearch = Object.values(item).some(val => 
+      String(val).toLowerCase().includes(filter.searchQuery.toLowerCase())
+    )
+    return cocokTanggal && cocokPolisi && cocokSupir && cocokSearch
   })
 
-  // Calculate pagination
   const totalItems = filteredData.length
   const totalPages = Math.ceil(totalItems / itemsPerPage)
   const indexOfLastItem = currentPage * itemsPerPage
@@ -129,9 +163,11 @@ export const SusutTimbangan = () => {
   const paginate = (pageNumber) => setCurrentPage(pageNumber)
 
   return (
-    <div className="max-w-5xl mx-auto p-4">
-      <h2 className="text-2xl font-bold mb-4">Input Data Susut Timbangan</h2>
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <h2 className="text-2xl font-bold mb-6 text-center">Input Data Susut Timbangan</h2>
+
+      {/* Input Form */}
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
         <input
           type="date"
           name="tanggal"
@@ -188,7 +224,7 @@ export const SusutTimbangan = () => {
           onChange={handleChange}
           required
         />
-        <div className="md:col-span-2">
+        <div className="md:col-span-3">
           <button 
             type="submit" 
             className="btn btn-primary w-full"
@@ -204,16 +240,29 @@ export const SusutTimbangan = () => {
         </div>
       </form>
 
+      {/* Save Confirmation Modal */}
       <ConfirmModal
-        isOpen={isConfirmOpen}
+        isOpen={isSaveModalOpen}
         title="Konfirmasi Simpan Data"
         message="Apakah Anda yakin ingin menyimpan data susut timbangan ini?"
         onConfirm={confirmSubmit}
-        onCancel={() => setIsConfirmOpen(false)}
+        onCancel={() => setIsSaveModalOpen(false)}
         isLoading={isSubmitting}
       />
 
-      <h2 className="text-xl font-semibold mb-2">Filter Data</h2>
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        title="Konfirmasi Hapus Data"
+        message={`Apakah Anda yakin ingin menghapus data untuk ${itemToDelete?.nomor_polisi}?`}
+        onConfirm={confirmDelete}
+        onCancel={() => setIsDeleteModalOpen(false)}
+        isLoading={isDeleting}
+        confirmText="Hapus"
+        cancelText="Batal"
+      />
+
+      {/* Filter Section */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
         <input
           type="date"
@@ -222,7 +271,7 @@ export const SusutTimbangan = () => {
           value={filter.tanggal}
           onChange={(e) => {
             setFilter(prev => ({ ...prev, tanggal: e.target.value }))
-            setCurrentPage(1) // Reset to first page when filtering
+            setCurrentPage(1)
           }}
         />
         <input
@@ -232,7 +281,7 @@ export const SusutTimbangan = () => {
           value={filter.nomor_polisi}
           onChange={(e) => {
             setFilter(prev => ({ ...prev, nomor_polisi: e.target.value }))
-            setCurrentPage(1) // Reset to first page when filtering
+            setCurrentPage(1)
           }}
         />
         <input
@@ -242,31 +291,47 @@ export const SusutTimbangan = () => {
           value={filter.nama_supir}
           onChange={(e) => {
             setFilter(prev => ({ ...prev, nama_supir: e.target.value }))
-            setCurrentPage(1) // Reset to first page when filtering
+            setCurrentPage(1)
           }}
         />
+        <div className="relative">
+          <div className="relative">
+            <input
+              type="text"
+              placeholder="Cari..."
+              className="input input-bordered w-full pl-10"
+              value={filter.searchQuery}
+              onChange={(e) => {
+                setFilter(prev => ({ ...prev, searchQuery: e.target.value }))
+                setCurrentPage(1)
+              }}
+            />
+            <FaSearch className="absolute left-3 top-3.5 text-gray-400" />
+          </div>
+        </div>
         <button
-          className="btn btn-secondary"
+          className="btn btn-outline md:col-span-4"
           onClick={() => {
-            setFilter({ tanggal: '', nomor_polisi: '', nama_supir: '' })
-            setCurrentPage(1) // Reset to first page when resetting filter
+            setFilter({ tanggal: '', nomor_polisi: '', nama_supir: '', searchQuery: '' })
+            setCurrentPage(1)
           }}
         >
           Reset Filter
         </button>
       </div>
 
-      <h2 className="text-xl font-semibold mb-2">Data Susut Timbangan</h2>
+      {/* Data Table */}
+      <h2 className="text-xl font-semibold mb-4">Data Susut Timbangan</h2>
       {loading ? (
         <div className="flex justify-center">
           <FaSpinner className="animate-spin text-2xl" />
         </div>
       ) : list.length === 0 ? (
-        <p>Tidak ada data</p>
+        <p className="text-center py-4">Tidak ada data</p>
       ) : (
         <>
           <div className="overflow-x-auto mb-4">
-            <table className="table table-zebra w-full min-w-[800px]">
+            <table className="table table-zebra w-full">
               <thead>
                 <tr>
                   <th>Tanggal</th>
@@ -277,7 +342,8 @@ export const SusutTimbangan = () => {
                   <th>SP RAM</th>
                   <th>Selisih</th>
                   <th>Status</th>
-                  <th>Persentase (%)</th>
+                  <th>Persentase</th>
+                  <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
@@ -290,8 +356,21 @@ export const SusutTimbangan = () => {
                     <td>{formatAngka(item.buah_pulangan)}</td>
                     <td>{formatAngka(item.sp_ram)}</td>
                     <td>{formatAngka(item.selisih)}</td>
-                    <td>{item.status}</td>
-                    <td>{formatAngka(item.persentase)}</td>
+                    <td>
+                      <span className={`badge ${item.status === 'Normal' ? 'badge-success' : 'badge-error'}`}>
+                        {item.status}
+                      </span>
+                    </td>
+                    <td>{formatAngka(item.persentase)}%</td>
+                    <td>
+                      <button 
+                        className="btn btn-error btn-sm"
+                        onClick={() => handleDelete(item)}
+                        aria-label="Hapus"
+                      >
+                        <FaTrash />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -299,50 +378,15 @@ export const SusutTimbangan = () => {
           </div>
 
           {/* Pagination */}
-          <div className="flex justify-between items-center">
-            <div>
-              Menampilkan {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, totalItems)} dari {totalItems} data
-            </div>
-            <div className="join">
-              <button
-                className="join-item btn"
-                onClick={() => paginate(1)}
-                disabled={currentPage === 1}
-              >
-                «
-              </button>
-              <button
-                className="join-item btn"
-                onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
-              >
-                ‹
-              </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(number => (
-                <button
-                  key={number}
-                  className={`join-item btn ${currentPage === number ? 'btn-active' : ''}`}
-                  onClick={() => paginate(number)}
-                >
-                  {number}
-                </button>
-              ))}
-              <button
-                className="join-item btn"
-                onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage === totalPages}
-              >
-                ›
-              </button>
-              <button
-                className="join-item btn"
-                onClick={() => paginate(totalPages)}
-                disabled={currentPage === totalPages}
-              >
-                »
-              </button>
-            </div>
-          </div>
+          {totalPages > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalPages={totalPages}
+              totalItems={totalItems}
+              itemsPerPage={itemsPerPage}
+              onPageChange={paginate}
+            />
+          )}
         </>
       )}
     </div>

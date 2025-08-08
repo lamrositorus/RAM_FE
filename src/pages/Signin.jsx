@@ -56,7 +56,7 @@ export const Signin = () => {
             />
           </div>
           <div className="form-control">
-            <label className="label" htmlFor="password">Kata Sandi</label>
+            <label className="label w-full" htmlFor="password">Kata Sandi</label>
             <input
               id="password"
               name="password"

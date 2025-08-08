@@ -136,4 +136,16 @@ export const getSusutTimbangan = async (token) => {
     return handleApiError(error)
   }
 }
+export const deleteSusutTimbangan = async (id, token) => {
+  try {
+    const res = await axios.delete(`${BASE_URL}/api/susut/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    return res.data
+  } catch (error) {
+    return handleApiError(error)
+  }
+}
 
