@@ -357,9 +357,14 @@ export const SusutTimbangan = () => {
                     <td>{formatAngka(item.sp_ram)}</td>
                     <td>{formatAngka(item.selisih)}</td>
                     <td>
-                      <span className={`badge ${item.status === 'Normal' ? 'badge-success' : 'badge-error'}`}>
-                        {item.status}
-                      </span>
+                        <span className={`badge ${
+                          item.status === 'normal' || item.status === 'kelebihan'
+                            ? 'badge-success'
+                            : 'badge-error'
+                        }`}>
+                          {item.status}
+                        </span>
+
                     </td>
                     <td>{formatAngka(item.persentase)}%</td>
                     <td>
