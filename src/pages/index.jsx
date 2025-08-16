@@ -5,3 +5,4 @@ export * from './Keuangan';
 export * from './SusutTimbangan';
 export * from './Modal';
 export * from './Keuntungan';
+export * from './pageNotFound';

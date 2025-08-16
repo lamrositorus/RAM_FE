@@ -2,7 +2,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 import Sidebar from './components/Sidebar'
-import { Signup, Dashboard, Signin, Keuangan, SusutTimbangan, Estimasikeuntungan, Modal } from './pages'
+import { Signup, Dashboard, Signin, Keuangan, SusutTimbangan, Estimasikeuntungan, Modal, NotFound } from './pages'
 import { useAuth } from './context/AuthContext'
 
 export const App = () => {
@@ -41,7 +41,8 @@ export const App = () => {
                 <Route path="/" element={<Signin />} />
                 <Route path="/signin" element={<Signin />} />
                 <Route path="/signup" element={<Signup />} />
-                
+                <Route path="*" element={<NotFound />} />
+
                 {/* Protected routes */}
                 {token && (
                   <>
