@@ -29,19 +29,19 @@ const Sidebar = () => {
           <span>RAM</span>
         </li>
         <li>
-          <Link to="/api/dashboard">Dashboard</Link>
+          <Link to="/dashboard">Dashboard</Link>
         </li>
         <li>
-          <Link to="/api/keuangan">Laporan Keuangan</Link>
+          <Link to="/keuangan">Laporan Keuangan</Link>
         </li>
         <li>
-          <Link to="/api/modal">Estimasi Modal</Link>
+          <Link to="/modal">Estimasi Modal</Link>
         </li>
         <li>
-          <Link to="/api/keuntungan">Estimasi Keuntungan</Link>
+          <Link to="/keuntungan">Estimasi Keuntungan</Link>
         </li>
         <li>
-          <Link to="/api/susut">Susut Timbangan</Link>
+          <Link to="/susut">Susut Timbangan</Link>
         </li>
         <li className="mt-auto">
           <button className="btn btn-error w-full" onClick={handleLogout}>
