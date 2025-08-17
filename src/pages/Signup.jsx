@@ -37,7 +37,7 @@ export const Signup = () => {
   return (
     <main className="card w-96 bg-base-100 shadow-xl mx-auto mt-20" role="main" aria-labelledby="signup-title">
       <div className="card-body">
-        <h2 className="card-title" id="signup-title">Daftar Akun</h2>
+        <h2 className="card-title justify-center" id="signup-title">Daftar Akun</h2>
         {error && <div className="alert alert-error" role="alert" aria-live="assertive">{error}</div>}
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }} aria-label="Formulir Daftar">
           <div className="form-control">
@@ -48,7 +48,7 @@ export const Signup = () => {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="input input-bordered"
+              className="input input-bordered w-full"
               required
               disabled={isLoading}
             />
@@ -61,7 +61,7 @@ export const Signup = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input input-bordered"
+              className="input input-bordered w-full"
               required
               disabled={isLoading}
             />
@@ -74,7 +74,7 @@ export const Signup = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input input-bordered"
+              className="input input-bordered w-full"
               required
               disabled={isLoading}
             />

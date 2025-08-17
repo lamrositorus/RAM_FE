@@ -39,7 +39,7 @@ export const Signin = () => {
   return (
     <main className="card w-96 bg-base-100 shadow-xl mx-auto mt-20" role="main" aria-labelledby="signin-title">
       <div className="card-body">
-        <h2 className="card-title" id="signin-title">Masuk</h2>
+        <h2 className="card-title justify-center" id="signin-title">Masuk</h2>
         {error && <div className="alert alert-error" role="alert" aria-live="assertive" id="error-message">{error}</div>}
         <form onSubmit={(e) => { e.preventDefault(); handleSubmit() }} aria-label="Formulir Masuk">
           <div className="form-control">
@@ -50,7 +50,7 @@ export const Signin = () => {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="input input-bordered"
+              className="input input-bordered w-full"
               required
               disabled={isLoading}
             />
@@ -63,7 +63,7 @@ export const Signin = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="input input-bordered"
+              className="input input-bordered w-full"
               required
               disabled={isLoading}
             />
